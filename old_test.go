@@ -118,6 +118,7 @@ func TestRouteMatchers(t *testing.T) {
 	match := func(shouldMatch bool) {
 		url := scheme + "://" + host + path + query
 		request, _ := http.NewRequest(method, url, nil)
+		request.RequestURI = request.URL.Path
 		for key, value := range headers {
 			request.Header.Add(key, value)
 		}
@@ -400,6 +401,7 @@ var urlBuildingTests = []urlBuildingTest{
 func TestHeaderMatcher(t *testing.T) {
 	for _, v := range headerMatcherTests {
 		request, _ := http.NewRequest("GET", "http://localhost:8080/", nil)
+		request.RequestURI = request.URL.Path
 		for key, value := range v.headers {
 			request.Header.Add(key, value)
 		}
@@ -418,6 +420,7 @@ func TestHeaderMatcher(t *testing.T) {
 func TestHostMatcher(t *testing.T) {
 	for _, v := range hostMatcherTests {
 		request, _ := http.NewRequest("GET", v.url, nil)
+		request.RequestURI = request.URL.Path
 		var routeMatch RouteMatch
 		result := v.matcher.Match(request, &routeMatch)
 		vars := routeMatch.Vars
@@ -448,6 +451,7 @@ func TestHostMatcher(t *testing.T) {
 func TestMethodMatcher(t *testing.T) {
 	for _, v := range methodMatcherTests {
 		request, _ := http.NewRequest(v.method, "http://localhost:8080/", nil)
+		request.RequestURI = request.URL.Path
 		var routeMatch RouteMatch
 		result := v.matcher.Match(request, &routeMatch)
 		if result != v.result {
@@ -463,6 +467,7 @@ func TestMethodMatcher(t *testing.T) {
 func TestPathMatcher(t *testing.T) {
 	for _, v := range pathMatcherTests {
 		request, _ := http.NewRequest("GET", v.url, nil)
+		request.RequestURI = request.URL.Path
 		var routeMatch RouteMatch
 		result := v.matcher.Match(request, &routeMatch)
 		vars := routeMatch.Vars
@@ -493,6 +498,7 @@ func TestPathMatcher(t *testing.T) {
 func TestSchemeMatcher(t *testing.T) {
 	for _, v := range schemeMatcherTests {
 		request, _ := http.NewRequest("GET", v.url, nil)
+		request.RequestURI = request.URL.Path
 		var routeMatch RouteMatch
 		result := v.matcher.Match(request, &routeMatch)
 		if result != v.result {
@@ -547,6 +553,7 @@ func TestMatchedRouteName(t *testing.T) {
 
 	url := "http://www.domain.com/products/"
 	request, _ := http.NewRequest("GET", url, nil)
+	request.RequestURI = request.URL.Path
 	var rv RouteMatch
 	ok := router.Match(request, &rv)
 
@@ -568,6 +575,7 @@ func TestSubRouting(t *testing.T) {
 
 	url := "http://www.domain.com/products/"
 	request, _ := http.NewRequest("GET", url, nil)
+	request.RequestURI = request.URL.Path
 	var rv RouteMatch
 	ok := router.Match(request, &rv)
 
@@ -611,6 +619,7 @@ func TestRedirectSlash(t *testing.T) {
 	route.strictSlash = true
 	route.Path("/{arg1}/{arg2:[0-9]+}/")
 	request, _ := http.NewRequest("GET", "http://localhost/foo/123", nil)
+	request.RequestURI = request.URL.Path
 	routeMatch = RouteMatch{}
 	_ = route.Match(request, &routeMatch)
 	vars := routeMatch.Vars
@@ -630,6 +639,7 @@ func TestRedirectSlash(t *testing.T) {
 	route.strictSlash = true
 	route.Path("/{arg1}/{arg2:[0-9]+}")
 	request, _ = http.NewRequest("GET", "http://localhost/foo/123/", nil)
+	request.RequestURI = request.URL.Path
 	routeMatch = RouteMatch{}
 	_ = route.Match(request, &routeMatch)
 	vars = routeMatch.Vars

@@ -13,6 +13,19 @@ import (
 	"strings"
 )
 
+var matchAbsoluteURI = regexp.MustCompile("^http[s]?://")
+
+func extractPath(requestURI string) string {
+	uri := strings.Split(requestURI, "?")[0]
+	if matchAbsoluteURI.MatchString(uri) {
+		uriSplit := strings.SplitN(requestURI, "/", 4)
+		if len(uriSplit) == 4 {
+			uri = "/" + uriSplit[3]
+		}
+	}
+	return uri
+}
+
 // newRouteRegexp parses a route template and returns a routeRegexp,
 // used to match a host, a path or a query string.
 //
@@ -143,7 +156,8 @@ func (r *routeRegexp) Match(req *http.Request, match *RouteMatch) bool {
 		if r.matchQuery {
 			return r.regexp.MatchString(req.URL.RawQuery)
 		} else {
-			return r.regexp.MatchString(req.URL.Path)
+			uri := extractPath(req.RequestURI)
+			return r.regexp.MatchString(uri)
 		}
 	}
 	return r.regexp.MatchString(getHost(req))
@@ -213,6 +227,8 @@ type routeRegexpGroup struct {
 
 // setMatch extracts the variables from the URL once a route matches.
 func (v *routeRegexpGroup) setMatch(req *http.Request, m *RouteMatch, r *Route) {
+
+	uri := extractPath(req.RequestURI)
 	// Store host variables.
 	if v.host != nil {
 		hostVars := v.host.regexp.FindStringSubmatch(getHost(req))
@@ -224,7 +240,7 @@ func (v *routeRegexpGroup) setMatch(req *http.Request, m *RouteMatch, r *Route) 
 	}
 	// Store path variables.
 	if v.path != nil {
-		pathVars := v.path.regexp.FindStringSubmatch(req.URL.Path)
+		pathVars := v.path.regexp.FindStringSubmatch(uri)
 		if pathVars != nil {
 			for k, v := range v.path.varsN {
 				m.Vars[v] = pathVars[k+1]

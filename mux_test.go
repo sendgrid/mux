@@ -697,6 +697,20 @@ func TestSubRouter(t *testing.T) {
 	}
 }
 
+func TestAbsoluteRequestURI(t *testing.T) {
+	subrouter2 := new(Route).PathPrefix("/foo/{v1}").Subrouter()
+	test := routeTest{
+		route:       subrouter2.Path("/baz/{v2}"),
+		request:     newRequest("GET", "http://localhost/foo/bar/baz/ding"),
+		vars:        map[string]string{"v1": "bar", "v2": "ding"},
+		host:        "",
+		path:        "/foo/bar/baz/ding",
+		shouldMatch: true,
+	}
+	test.request.RequestURI = "http://localhost/foo/bar/baz/ding"
+	testRoute(t, test)
+}
+
 func TestNamedRoutes(t *testing.T) {
 	r1 := NewRouter()
 	r1.NewRoute().Name("a")
@@ -826,7 +840,7 @@ func testRoute(t *testing.T, test routeTest) {
 		if !shouldMatch {
 			msg = "Should not match"
 		}
-		t.Errorf("(%v) %v:\nRoute: %#v\nRequest: %#v\nVars: %v\n", test.title, msg, route, request, vars)
+		t.Errorf("(%v) %v:\nRoute: %#v\nRequest: %#v\nVars: %v\nPath: %v\n", test.title, msg, route, request, vars, path)
 		return
 	}
 	if shouldMatch {
@@ -875,6 +889,7 @@ func TestKeepContext(t *testing.T) {
 	r.HandleFunc("/", func1).Name("func1")
 
 	req, _ := http.NewRequest("GET", "http://localhost/", nil)
+	req.RequestURI = "/"
 	context.Set(req, "t", 1)
 
 	res := new(http.ResponseWriter)
@@ -887,6 +902,7 @@ func TestKeepContext(t *testing.T) {
 	r.KeepContext = true
 
 	req, _ = http.NewRequest("GET", "http://localhost/", nil)
+	req.RequestURI = "/"
 	context.Set(req, "t", 1)
 
 	r.ServeHTTP(*res, req)
@@ -950,6 +966,7 @@ func TestSubrouterHeader(t *testing.T) {
 	r.HandleFunc("/", func2).Name("func2")
 
 	req, _ := http.NewRequest("GET", "http://localhost/", nil)
+	req.RequestURI = "/"
 	req.Header.Add("SomeSpecialHeader", "foo")
 	match := new(RouteMatch)
 	matched := r.Match(req, match)
@@ -999,5 +1016,6 @@ func newRequest(method, url string) *http.Request {
 	if err != nil {
 		panic(err)
 	}
+	req.RequestURI = req.URL.Path
 	return req
 }
